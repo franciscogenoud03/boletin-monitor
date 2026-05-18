@@ -72,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 4. Loguear
-    const sociedadesConNovedad = [...new Set(nuevasAlertas.map((a) => a.sociedad_nombre))]
+    const sociedadesConNovedad = Array.from(new Set(nuevasAlertas.map((a) => a.sociedad_nombre)))    
     const detalle = nuevasAlertas.length
       ? `${nuevasAlertas.length} novedad(es) encontradas: ${sociedadesConNovedad.join(', ')}`
       : 'Sin novedades'
