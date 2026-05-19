@@ -18,6 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     const { nombre, cuit, tipos } = req.body
+    console.log('BODY:', JSON.stringify(req.body))
     if (!nombre || !tipos?.length) return res.status(400).json({ error: 'Nombre y tipos son requeridos' })
     const { data, error } = await supabase
       .from('sociedades')
