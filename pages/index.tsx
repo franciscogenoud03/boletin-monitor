@@ -107,9 +107,9 @@ export default function Home() {
   async function runScan() {
     setScanning(true); setScanMsg('Consultando Boletín Oficial...')
     const secret = process.env.NEXT_PUBLIC_CRON_SECRET_HINT ?? ''
-    const res = await fetch('/api/cron', {
+const res = await fetch('/api/cron', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET_HINT ?? ''}` },
+      headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? ''}` },
     })
     const data = await res.json().catch(() => ({}))
     setScanMsg(data.alertasGeneradas > 0 ? `✓ ${data.alertasGeneradas} novedad(es) encontradas` : '✓ Sin novedades nuevas')
