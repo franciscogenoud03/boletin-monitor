@@ -10,81 +10,79 @@ export const TIPOS_LABEL = {
   otro:       'Otro edicto',
 }
 
-const KEYWORDS = {
-  asamblea:   ['asamblea', 'convocatoria', 'accionistas'],
-  disolucion: ['disolucion', 'liquidacion'],
-  directorio: ['directorio', 'designacion', 'autoridades'],
-  capital:    ['capital social', 'aumento de capital'],
-  estatuto:   ['estatuto', 'reforma estatutaria'],
-  otro:       [],
+const RUBRO_A_TIPO = {
+  2100: 'asamblea',
+  1110: 'estatuto', 1120: 'estatuto', 1130: 'estatuto',
+  1210: 'estatuto', 1220: 'estatuto',
+  3200: 'disolucion', 2250: 'disolucion',
+  2300: 'directorio',
 }
 
-function extraerTextoXML(xml, tag) {
-  const match = xml.match(new RegExp('<' + tag + '[^>]*>([\\s\\S]*?)<\\/' + tag + '>'))
-  return match ? match[1].replace(/<[^>]+>/g, '').trim() : ''
-}
+const BASE = 'https://timeline.boletinoficial.gob.ar'
 
-function parsearItems(xml) {
-  const items = []
-  const regex = /<item>([\s\S]*?)<\/item>/g
-  let match
-  while ((match = regex.exec(xml)) !== null) {
-    const item = match[1]
-    items.push({
-      titulo: extraerTextoXML(item, 'title'),
-      descripcion: extraerTextoXML(item, 'description'),
-      fecha: extraerTextoXML(item, 'pubDate'),
-      link: extraerTextoXML(item, 'link'),
-    })
+async function buscarIndice(nombre) {
+  try {
+    const res = await axios.post(BASE + '/', 
+      'searchtext_type=society&searchtext_society=' + encodeURIComponent(nombre),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest', 'Referer': BASE + '/' }, timeout: 15000 }
+    )
+    const match = res.data.match(/indice['":\s]+([A-Z0-9]+)/)
+    return match ? match[1] : null
+  } catch(e) {
+    console.error('Error buscando indice:', e.message)
+    return null
   }
-  return items
+}
+
+async function obtenerAvisos(indice) {
+  try {
+    const res = await axios.post(BASE + '/obtener_sociedades_por_id',
+      'id=' + indice,
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest', 'Referer': BASE + '/' }, timeout: 15000 }
+    )
+    return res.data
+  } catch(e) {
+    console.error('Error obteniendo avisos:', e.message)
+    return null
+  }
 }
 
 export async function buscarEnBoletin(nombreSociedad, tipos) {
   const resultados = []
   try {
-    const res = await axios.get(
-      'https://www.boletinoficial.gob.ar/busquedaAvanzada/rss',
-      {
-        params: { seccion: '2', denominacion: nombreSociedad },
-        headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/rss+xml, application/xml, text/xml' },
-        timeout: 15000,
+    const indice = await buscarIndice(nombreSociedad)
+    if (!indice) return resultados
+
+    const data = await obtenerAvisos(indice)
+    if (!data || !data.items) return resultados
+
+    const haceDosDias = new Date()
+    haceDosDias.setDate(haceDosDias.getDate() - 2)
+
+    for (const item of data.items) {
+      const partes = item.fecha_desde.split('-')
+      const fecha = new Date(partes[2] + '-' + partes[1] + '-' + partes[0])
+      if (fecha < haceDosDias) continue
+
+      for (const aviso of item.avisos) {
+        let tipo = RUBRO_A_TIPO[aviso.id_rubro] || 'otro'
+        if (!tipos.includes(tipo) && !tipos.includes('otro')) continue
+
+        const fechaStr = partes[2] + '-' + partes[1] + '-' + partes[0]
+        const fechaLink = partes[0] + partes[1] + partes[2]
+
+        resultados.push({
+          tipo,
+          fecha: fechaStr,
+          numeroBoletin: String(aviso.id_aviso || '—'),
+          seccion: '2da seccion',
+          resumen: aviso.rubro + (aviso.asuntos && aviso.asuntos.length ? ' — ' + aviso.asuntos.join(', ') : ''),
+          url: 'https://www.boletinoficial.gob.ar/detalleAviso/segunda/' + aviso.id_aviso + '/' + fechaLink,
+        })
       }
-    )
-
-    const items = parsearItems(res.data)
-    const nombreLower = nombreSociedad.toLowerCase()
-
-    for (const item of items) {
-      const texto = (item.titulo + ' ' + item.descripcion).toLowerCase()
-      if (!texto.includes(nombreLower) && !item.titulo.toLowerCase().includes(nombreLower.split(' ')[0])) continue
-
-      let tipoDetectado = 'otro'
-      for (const tipo of tipos) {
-        if (tipo === 'otro') continue
-        const kws = KEYWORDS[tipo] || []
-        if (kws.some(function(kw) { return texto.includes(kw) })) {
-          tipoDetectado = tipo
-          break
-        }
-      }
-      if (texto.includes('convocatoria') || texto.includes('asamblea')) tipoDetectado = 'asamblea'
-      if (texto.includes('disoluci') || texto.includes('liquidaci')) tipoDetectado = 'disolucion'
-      if (tipos.indexOf(tipoDetectado) === -1 && tipos.indexOf('otro') === -1) continue
-
-      const fechaStr = item.fecha ? new Date(item.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)
-
-      resultados.push({
-        tipo: tipoDetectado,
-        fecha: fechaStr,
-        numeroBoletin: '—',
-        seccion: '2da seccion',
-        resumen: (item.titulo + ' — ' + item.descripcion).slice(0, 600),
-        url: item.link || 'https://www.boletinoficial.gob.ar',
-      })
     }
-  } catch (err) {
-    console.error('Error RSS BO "' + nombreSociedad + '":', err.message)
+  } catch(e) {
+    console.error('Error scraper:', e.message)
   }
   return resultados
 }
