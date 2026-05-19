@@ -29,7 +29,7 @@ export type BoletinResult = {
 
 export async function buscarEnBoletin(
   nombreSociedad: string,
-  tipos: string[],
+  tipos: string[]
 ): Promise<BoletinResult[]> {
   const resultados: BoletinResult[] = []
 
