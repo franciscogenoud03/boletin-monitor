@@ -23,10 +23,7 @@ export type BoletinResult = {
   resumen: string
   url: string
 }
-export async function buscarEnBoletin(
-  nombreSociedad: string,
-  tipos: string[]
-): Promise<BoletinResult[]> {
+export async function buscarEnBoletin(nombreSociedad: string, tipos: string[]): Promise<BoletinResult[]> {
   const resultados: BoletinResult[] = []
   try {
     const res = await axios.get(
