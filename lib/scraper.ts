@@ -1,5 +1,4 @@
-import axios from 'axios'
-
+ESTE ESEL CODIGOimport axios from 'axios'
 export const TIPOS_LABEL: Record<string, string> = {
   asamblea:   'Convocatoria a asamblea',
   disolucion: 'Disolución / liquidación',
@@ -8,7 +7,6 @@ export const TIPOS_LABEL: Record<string, string> = {
   estatuto:   'Reforma de estatuto',
   otro:       'Otro edicto',
 }
-
 const KEYWORDS: Record<string, string[]> = {
   asamblea:   ['asamblea', 'convocatoria', 'accionistas', 'reunión de socios'],
   disolucion: ['disolución', 'liquidación', 'liquidador'],
@@ -17,7 +15,6 @@ const KEYWORDS: Record<string, string[]> = {
   estatuto:   ['estatuto', 'reforma estatutaria', 'modificación estatuto'],
   otro:       [],
 }
-
 export type BoletinResult = {
   tipo: string
   fecha: string
@@ -26,13 +23,11 @@ export type BoletinResult = {
   resumen: string
   url: string
 }
-
 export async function buscarEnBoletin(
   nombreSociedad: string,
   tipos: string[]
 ): Promise<BoletinResult[]> {
   const resultados: BoletinResult[] = []
-
   try {
     const res = await axios.get(
       'https://www.boletinoficial.gob.ar/busquedaAvanzada/realizarBusqueda',
@@ -51,15 +46,12 @@ export async function buscarEnBoletin(
         timeout: 15000,
       }
     )
-
     const avisos = res.data?.avisos ?? res.data?.results ?? res.data?.data ?? []
-
     for (const aviso of avisos) {
       const texto = (
         aviso.descripcion ?? aviso.texto ?? aviso.contenido ?? aviso.rubro ?? ''
       ).toLowerCase()
       const textoOriginal = aviso.descripcion ?? aviso.texto ?? aviso.contenido ?? aviso.rubro ?? ''
-
       let tipoDetectado = 'otro'
       for (const tipo of tipos) {
         if (tipo === 'otro') continue
@@ -69,7 +61,6 @@ export async function buscarEnBoletin(
           break
         }
       }
-
       // También detectar por rubro
       const rubro = (aviso.rubro ?? '').toLowerCase()
       if (rubro.includes('convocatoria') || rubro.includes('asamblea')) tipoDetectado =
