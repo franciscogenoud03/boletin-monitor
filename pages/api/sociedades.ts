@@ -1,9 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { supabaseAdmin } from '../../lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('sociedades')
       .select('*')
       .order('created_at', { ascending: false })
@@ -14,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'POST') {
     const { nombre, cuit, tipos } = req.body
     if (!nombre || !tipos?.length) return res.status(400).json({ error: 'Nombre y tipos son requeridos' })
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('sociedades')
       .insert({ nombre: nombre.trim(), cuit: cuit?.trim() || null, tipos, activa: true })
       .select()
