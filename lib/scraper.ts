@@ -1,4 +1,4 @@
-ESTE ESEL CODIGOimport axios from 'axios'
+import axios from 'axios'
 export const TIPOS_LABEL: Record<string, string> = {
   asamblea:   'Convocatoria a asamblea',
   disolucion: 'Disolución / liquidación',
